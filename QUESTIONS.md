@@ -9,6 +9,10 @@ Diese Anleitung gilt für Menschen und für die automatische wöchentliche Aufga
    und **1 neue Finalfrage** in `rare`. Das Format steht als Kommentar über jeder Liste.
 3. `npm test` ausführen. Alle Tests müssen bestehen.
 4. Fehler beheben, nicht die Tests ändern.
+5. Nur `js/data.js` committen und auf einen Branch `questions/JJJJ-MM-TT` (oder `claude/...`) pushen.
+   Der Workflow `.github/workflows/auto-merge-questions.yml` testet ihn, übernimmt ihn nach `main`
+   und veröffentlicht die Seite neu. Ein Pull Request ist dafür nicht nötig. Ändert ein Branch noch
+   andere Dateien, wird er nicht automatisch übernommen.
 
 ## Qualitätsregeln
 
