@@ -2,7 +2,7 @@
 // No DOM access here, so it can be unit-tested with Node.
 var SpindleLogic = (function () {
   var EPOCH = Date.UTC(2026, 10, 26); // Spindle #1 = 26 Nov 2026
-  var TZ = "Europe/Berlin";
+  var TZ = "America/New_York"; // new quiz at midnight New York time
   var ROUND_ORDER = ["duel", "emoji", "gap", "color", "time", "bio", "duet"];
 
   // Mulberry32 – small seeded PRNG so every player gets the same daily quiz.
@@ -16,7 +16,7 @@ var SpindleLogic = (function () {
     };
   }
 
-  // "YYYY-MM-DD" for the given date in Berlin time.
+  // "YYYY-MM-DD" for the given date in New York time.
   function isoDay(date) {
     return (date || new Date()).toLocaleDateString("sv-SE", { timeZone: TZ });
   }
