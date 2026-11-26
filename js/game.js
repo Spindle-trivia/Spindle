@@ -218,16 +218,35 @@
     B.innerHTML = '<div class="big" style="font-size:clamp(24px,6vw,34px)">' + esc(x.prompt) + "</div>" +
       '<p class="meta" style="text-align:center;margin-top:-6px">The rarer your correct answer, the more points.</p>' +
       '<form id="f"><input type="text" id="in" autocomplete="off" placeholder="Your answer" aria-label="Your answer">' +
+      '<div class="dym" id="dym" aria-live="polite"></div>' +
       '<button class="go next" type="submit">Submit</button></form>';
     $("#in").focus();
     var finished = false;
+    var asked = null; // the text we already offered a correction for
+
+    // Small typo? Ask "Did you mean …?" once before submitting.
+    function trySubmit() {
+      var v = $("#in").value;
+      if (asked === v) return fin(); // second Enter on the same text: keep it as typed
+      var s = L.suggest(v, x.tiers);
+      if (!s) return fin();
+      asked = v;
+      var nice = L.titleCase(s);
+      $("#dym").innerHTML = '<p class="dym-q">Did you mean <b>“' + esc(nice) + '”</b>?</p>' +
+        '<div class="row"><button type="button" class="go" id="dy">Yes, that one</button>' +
+        '<button type="button" class="ghost" id="dn">No, keep mine</button></div>';
+      $("#dy").onclick = function () { $("#in").value = nice; fin(); };
+      $("#dn").onclick = function () { fin(); };
+      $("#dy").focus();
+    }
     function fin() {
       if (finished) return;
       finished = true;
       stop();
       var v = $("#in").value;
       $("#in").disabled = true;
-      $("#f button").disabled = true;
+      $("#f").querySelectorAll("button").forEach(function (b) { b.disabled = true; });
+      $("#dym").innerHTML = "";
       var t = L.tier(v, x.tiers);
       rareAnswer = L.norm(v).trim().slice(0, 60) || null;
       var names = { c: "Popular pick", m: "Pretty rare", r: "Super rare! 🌟" };
@@ -238,7 +257,7 @@
           : '<span class="r">' + (v.trim() ? "“" + esc(v.trim()) + "” isn’t on our list." : "No answer.") + "</span>" + tail,
         t === "r");
     }
-    $("#f").onsubmit = function (e) { e.preventDefault(); fin(); };
+    $("#f").onsubmit = function (e) { e.preventDefault(); trySubmit(); };
     timer(x.sec, fin);
   }
 

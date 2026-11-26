@@ -109,6 +109,56 @@ var SpindleLogic = (function () {
     return null;
   }
 
+  // Optimal string alignment distance (Levenshtein + swapped neighbours), capped for speed.
+  function editDistance(a, b, cap) {
+    if (Math.abs(a.length - b.length) > cap) return cap + 1;
+    var prev2 = null, prev = [], cur, i, j;
+    for (j = 0; j <= b.length; j++) prev[j] = j;
+    for (i = 1; i <= a.length; i++) {
+      cur = [i];
+      var rowMin = i;
+      for (j = 1; j <= b.length; j++) {
+        var cost = a[i - 1] === b[j - 1] ? 0 : 1;
+        var v = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + cost);
+        if (prev2 && i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) v = Math.min(v, prev2[j - 2] + 1);
+        cur[j] = v;
+        if (v < rowMin) rowMin = v;
+      }
+      if (rowMin > cap) return cap + 1;
+      prev2 = prev; prev = cur;
+    }
+    return prev[b.length];
+  }
+
+  // How many typos we tolerate for an answer of this length (letters only, spaces ignored).
+  function typoBudget(len) {
+    return len < 5 ? 0 : len <= 8 ? 1 : len <= 14 ? 2 : 3;
+  }
+
+  // For an answer that doesn't match exactly: the closest known answer within the typo budget, or null.
+  // Spaces are ignored, so "eyeofthetigr" or "eye of thetiger" are caught too.
+  function suggest(v, tiers) {
+    if (tier(v, tiers)) return null;
+    var n = norm(v).replace(/ /g, "");
+    if (n.length < 4) return null;
+    var best = null, bestD = Infinity;
+    ["r", "m", "c"].forEach(function (k) {
+      tiers[k].forEach(function (s) {
+        var m = norm(s).replace(/ /g, "");
+        var budget = typoBudget(m.length);
+        if (!budget) return;
+        var d = editDistance(n, m, budget);
+        if (d <= budget && d < bestD) { best = s; bestD = d; }
+      });
+    });
+    return best;
+  }
+
+  // "eye of the tiger" -> "Eye Of The Tiger" for display.
+  function titleCase(s) {
+    return String(s).replace(/\b\w/g, function (m) { return m.toUpperCase(); });
+  }
+
   var TIER_POINTS = { c: 30, m: 60, r: 100 };
 
   function mcPoints(correct, fractionLeft) { return correct ? 60 + Math.round(40 * fractionLeft) : 0; }
@@ -149,7 +199,7 @@ var SpindleLogic = (function () {
 
   return {
     TZ: TZ, betterThan: betterThan, mulberry32: mulberry32, isoDay: isoDay, dayNumber: dayNumber, buildQuiz: buildQuiz,
-    norm: norm, tier: tier, TIER_POINTS: TIER_POINTS, mcPoints: mcPoints, bioPoints: bioPoints,
+    norm: norm, tier: tier, editDistance: editDistance, suggest: suggest, titleCase: titleCase, TIER_POINTS: TIER_POINTS, mcPoints: mcPoints, bioPoints: bioPoints,
     orderCorrect: orderCorrect, shareGrid: shareGrid, nextStreak: nextStreak
   };
 })();

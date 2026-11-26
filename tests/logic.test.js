@@ -41,6 +41,26 @@ test("tier finds rarest matching tier", () => {
   assert.equal(L.tier(" ", t), null);
 });
 
+test("editDistance counts typos incl. swapped letters", () => {
+  assert.equal(L.editDistance("tiger", "tigr", 3), 1);
+  assert.equal(L.editDistance("tiger", "tgier", 3), 1);
+  assert.equal(L.editDistance("abba", "abba", 3), 0);
+  assert.equal(L.editDistance("abc", "xyzxyz", 2), 3); // capped
+});
+
+test("suggest offers the closest answer for small typos only", () => {
+  const animals = D.rare[0][1];
+  const sweden = D.rare[1][1];
+  assert.equal(L.suggest("eye of the tigr", animals), "eye of the tiger");
+  assert.equal(L.suggest("Eye of teh Tiger", animals), "eye of the tiger");
+  assert.equal(L.suggest("eyeofthetiger", animals), "eye of the tiger"); // missing spaces
+  assert.equal(L.suggest("Avici", sweden), "avicii");
+  assert.equal(L.suggest("Roxete", sweden), "roxette");
+  assert.equal(L.suggest("Eye of the Tiger", animals), null); // exact match, no question
+  assert.equal(L.suggest("Coldplay", sweden), null); // not close to anything
+  assert.equal(L.suggest("abb", sweden), null); // too short to guess
+});
+
 test("scoring helpers", () => {
   assert.equal(L.mcPoints(true, 1), 100);
   assert.equal(L.mcPoints(true, 0), 60);
