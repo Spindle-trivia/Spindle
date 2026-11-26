@@ -18,7 +18,8 @@ aus einem festen Seed gezogen (Zeitzone Europe/Berlin), sodass alle Spieler am s
 | Duet Partner | Duettpartner ergänzen | 60–100 |
 | **Finale: Rarest Answer** | Freitext – je seltener die richtige Antwort, desto mehr | 30 / 60 / 100 |
 
-Maximal 800 Punkte. Am Ende gibt es ein teilbares Emoji-Raster (🟩🟨🟧⬛🌟) und eine Tages-Serie (Streak),
+Maximal 800 Punkte. Ein Klick auf die Schallplatte führt jederzeit zurück ins Hauptmenü
+(ein begonnenes Quiz kann fortgesetzt werden). Am Ende gibt es ein teilbares Emoji-Raster (🟩🟨🟧⬛🌟) und eine Tages-Serie (Streak),
 die lokal im Browser gespeichert wird.
 
 ## Lokal starten
@@ -40,7 +41,8 @@ npm test           # Node ≥ 18, nutzt den eingebauten Test-Runner
 
 ```
 index.html          Einstiegsseite
-css/style.css       Styles (Hell-/Dunkelmodus über light-dark())
+css/style.css       Pixel-Look (Hell-/Dunkelmodus über light-dark())
+QUESTIONS.md        Regeln für neue Fragen
 js/data.js          Fragenpool und Rundennamen
 js/logic.js         Reine Spiellogik: Tages-Seed, Quiz-Aufbau, Punkte, Streak (ohne DOM, testbar)
 js/game.js          UI: Bildschirme, Timer, Eingaben
@@ -48,10 +50,11 @@ tests/              Unit-Tests für logic.js
 .github/workflows/  Tests + Deployment auf GitHub Pages
 ```
 
-## Neue Fragen hinzufügen
+## Neue Fragen
 
-Fragen stehen in `js/data.js`. Jede Kategorie hat ein eigenes Tupel-Format, das als Kommentar über der
-Liste steht – einfach einen weiteren Eintrag im selben Format anhängen und `npm test` laufen lassen.
+Fragen stehen in `js/data.js`. Einmal pro Woche fügt eine automatische Aufgabe neue Fragen hinzu –
+die Regeln dafür stehen in [`QUESTIONS.md`](QUESTIONS.md). `tests/data.test.js` prüft jede Frage auf das
+richtige Format, damit eine fehlerhafte Frage nie online geht.
 
 ## Deployment
 
