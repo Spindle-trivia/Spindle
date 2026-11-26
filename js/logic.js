@@ -140,8 +140,15 @@ var SpindleLogic = (function () {
     return d === 1 ? last.streak + 1 : d === 0 ? last.streak : 1;
   }
 
+  // Share of the *other* players today with a lower score, 0–100. null if you're the only player.
+  function betterThan(stats) {
+    var others = (stats && stats.players ? stats.players : 0) - 1;
+    if (others < 1) return null;
+    return Math.round(100 * Math.min(stats.below, others) / others);
+  }
+
   return {
-    TZ: TZ, mulberry32: mulberry32, isoDay: isoDay, dayNumber: dayNumber, buildQuiz: buildQuiz,
+    TZ: TZ, betterThan: betterThan, mulberry32: mulberry32, isoDay: isoDay, dayNumber: dayNumber, buildQuiz: buildQuiz,
     norm: norm, tier: tier, TIER_POINTS: TIER_POINTS, mcPoints: mcPoints, bioPoints: bioPoints,
     orderCorrect: orderCorrect, shareGrid: shareGrid, nextStreak: nextStreak
   };

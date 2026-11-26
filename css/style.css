@@ -171,3 +171,14 @@ td { text-align: left; padding: 6px 0; border-bottom: var(--px) dotted var(--lin
 td:last-child { text-align: right; font-family: "Press Start 2P", monospace; font-size: 12px; white-space: nowrap; }
 textarea { width: 100%; font: inherit; border: var(--px) solid var(--edge); border-radius: 0; padding: 10px; margin-top: 12px; }
 .note { font-size: 19px; opacity: .9; text-align: center; margin: 24px 16px; }
+
+/* Player comparison */
+.stats { margin: 16px 0 4px; padding: 12px; border: var(--px) dashed var(--line); }
+.pct-lab { font-family: "Press Start 2P", monospace; font-size: 10px; color: var(--mute); }
+.pct { font-size: clamp(28px, 9vw, 44px); color: var(--ok); margin: 6px 0 2px; }
+.hist { display: grid; grid-template-columns: repeat(9, 1fr); gap: 4px; align-items: end; height: 72px; margin: 12px 0 4px; }
+.hist .col { display: flex; flex-direction: column; justify-content: flex-end; align-items: stretch; height: 100%; }
+.hist i { display: block; background: var(--line); border: 2px solid var(--edge); border-bottom: 0; min-height: 0; }
+.hist .me i { background: var(--acc); }
+.hist span { font-family: "Press Start 2P", monospace; font-size: 6px; padding-top: 4px; border-top: 2px solid var(--edge); }
+.hist .me span { color: var(--coral-ink); }

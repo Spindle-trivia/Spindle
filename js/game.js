@@ -21,7 +21,7 @@
     set: function (k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* storage blocked */ } }
   };
 
-  var i = 0, res = [], star = false;
+  var i = 0, res = [], star = false, rareAnswer = null;
   var tm = null, t0 = 0, dur = 1;
 
   // Pixel-art record drawn on a 32×32 grid: one SVG path per colour, crisp edges.
@@ -229,6 +229,7 @@
       $("#in").disabled = true;
       $("#f button").disabled = true;
       var t = L.tier(v, x.tiers);
+      rareAnswer = L.norm(v).trim().slice(0, 60) || null;
       var names = { c: "Popular pick", m: "Pretty rare", r: "Super rare! 🌟" };
       var ex = x.tiers.r.slice(0, 3).map(function (s) { return s.replace(/\b\w/g, function (m) { return m.toUpperCase(); }); }).join(", ");
       var tail = "<p>Rare answers include: " + esc(ex) + "</p>";
@@ -254,7 +255,8 @@
   function finish() {
     var total = res.reduce(function (a, b) { return a + b; }, 0);
     var streak = L.nextStreak(store.get("spindle-last"), today);
-    var r = { total: total, grid: L.shareGrid(res, star), res: res, streak: streak, cats: Q.map(function (x) { return x.c; }) };
+    var r = { total: total, grid: L.shareGrid(res, star), res: res, streak: streak, cats: Q.map(function (x) { return x.c; }),
+      rare: rareAnswer, submitted: false };
     store.set("spindle-" + today, r);
     store.set("spindle-last", { date: today, streak: streak });
     result(r);
@@ -262,17 +264,24 @@
 
   function result(r) {
     stop();
-    var txt = "Spindle #" + (day + 1) + " 🎵 " + r.total + "/" + MAX + "\n" + r.grid;
+    var pct = null;
+    var shareText = function () {
+      return "Spindle #" + (day + 1) + " 🎵 " + r.total + "/" + MAX + "\n" + r.grid +
+        (pct != null ? "\n🏆 Better than " + pct + "% of players" : "");
+    };
     app.innerHTML = '<div class="hero"><button class="home home-big" id="home" aria-label="Back to main menu" title="Main menu">' +
       disc("rec", false) + "</button>" +
       '<div class="card" style="width:100%"><div class="lab">Spindle #' + (day + 1) + "</div>" +
       '<div class="score big" style="margin:6px 0 0">' + r.total + "</div>" +
       '<div class="meta">out of ' + MAX + " points" + (r.streak > 1 ? " · " + r.streak + "-day streak" : "") + "</div>" +
+      '<div class="stats" id="stats" aria-live="polite"><p class="meta">Comparing with other players…</p></div>' +
       '<div class="grid">' + r.grid + '</div><button class="go" id="cp">Copy result</button><div id="cpo"></div>' +
       "<table>" + r.res.map(function (p, k) { return "<tr><td>" + (k + 1) + ". " + esc(LBL[r.cats[k]]) + "</td><td>" + p + "</td></tr>"; }).join("") + "</table>" +
       '<p class="meta" style="margin-top:14px">Next record in <b id="cd"></b></p></div></div>';
     wireHome();
+    loadStats(r, function (p) { pct = p; });
     $("#cp").onclick = function () {
+      var txt = shareText();
       var fallback = function () {
         $("#cpo").innerHTML = '<textarea rows="3" readonly>' + esc(txt) + "</textarea>";
         $("#cpo textarea").select();
@@ -290,6 +299,55 @@
     }
     countdown();
     tm = setInterval(countdown, 30000);
+  }
+
+  // ---------- Player statistics ----------
+  // First view after finishing: submit the result (once). Later views: just fetch fresh stats.
+  function loadStats(r, onPct) {
+    if (typeof SpindleStats === "undefined") return showStatsError();
+    var req = r.submitted ? SpindleStats.stats(day, r.total, r.rare) : SpindleStats.submit(day, r.res, r.rare);
+    req.then(function (s) {
+      if (!r.submitted) {
+        r.submitted = true;
+        store.set("spindle-" + today, r);
+      }
+      var p = L.betterThan(s);
+      onPct(p);
+      renderStats(s, r, p);
+    }).catch(showStatsError);
+  }
+
+  function showStatsError() {
+    var el = $("#stats");
+    if (el) el.innerHTML = '<p class="meta">Player comparison is unavailable right now.</p>';
+  }
+
+  function renderStats(s, r, p) {
+    var el = $("#stats");
+    if (!el) return;
+    var players = s.players || 0;
+    var head = p == null
+      ? '<div class="pct px">First player today!</div><p class="meta">Come back later to see how you compare.</p>'
+      : '<div class="pct-lab">Better than</div><div class="pct px">' + p + "%</div>" +
+        '<p class="meta">of today’s ' + players + " players</p>";
+    // score distribution: one pixel column per 100 points, yours highlighted
+    var b = s.buckets || [];
+    var max = Math.max.apply(null, b.concat([1]));
+    var mine = Math.min(Math.floor(r.total / 100), 8);
+    var hist = players > 1 && b.length === 9
+      ? '<div class="hist" role="img" aria-label="Score distribution of today’s players">' +
+        b.map(function (n, k) {
+          var h = n ? Math.max(1, Math.round(8 * n / max)) : 0;
+          return '<div class="col' + (k === mine ? " me" : "") + '"><i style="height:' + (h * 6) + 'px"></i><span>' +
+            (k === 8 ? "800" : k * 100) + "</span></div>";
+        }).join("") + "</div>"
+      : "";
+    var rare = "";
+    if (r.rare && s.rare_same && players > 1) {
+      var share = Math.round(100 * s.rare_same / players);
+      rare = '<p class="meta">' + share + "% of players also answered “" + esc(r.rare) + "” in the finale</p>";
+    }
+    el.innerHTML = head + hist + rare;
   }
 
   startScreen();
