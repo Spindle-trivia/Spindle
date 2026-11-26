@@ -44,10 +44,12 @@ index.html          Einstiegsseite
 css/style.css       Pixel-Look (Hell-/Dunkelmodus über light-dark())
 QUESTIONS.md        Regeln für neue Fragen
 js/data.js          Fragenpool und Rundennamen
+js/stats.js         Anonyme Spieler-Statistik (Supabase)
 js/logic.js         Reine Spiellogik: Tages-Seed, Quiz-Aufbau, Punkte, Streak (ohne DOM, testbar)
 js/game.js          UI: Bildschirme, Timer, Eingaben
 tests/              Unit-Tests für logic.js
-.github/workflows/  Tests + Deployment auf GitHub Pages
+supabase/schema.sql Datenbank-Tabelle und Funktionen
+.github/workflows/  Tests, Deployment, automatische Übernahme neuer Fragen
 ```
 
 ## Neue Fragen
@@ -55,6 +57,17 @@ tests/              Unit-Tests für logic.js
 Fragen stehen in `js/data.js`. Einmal pro Woche fügt eine automatische Aufgabe neue Fragen hinzu –
 die Regeln dafür stehen in [`QUESTIONS.md`](QUESTIONS.md). `tests/data.test.js` prüft jede Frage auf das
 richtige Format, damit eine fehlerhafte Frage nie online geht.
+
+## Spieler-Vergleich (Supabase)
+
+Nach jedem Spiel wird das Ergebnis anonym in Supabase gespeichert (Tag, Punkte pro Frage, Antwort im Finale –
+keine Namen, keine Konten). Die Ergebnisseite zeigt dann „Better than X % of today's players“, eine
+Punkteverteilung und wie viele Spieler dieselbe Finalantwort gegeben haben.
+
+- `supabase/schema.sql` – Tabelle und zwei Funktionen (`spindle_submit`, `spindle_stats`). Einmalig im
+  Supabase-Dashboard unter *SQL Editor* ausführen. Die Tabelle selbst ist von außen weder les- noch beschreibbar.
+- `js/stats.js` – Projekt-URL und öffentlicher anon-Key. Ist Supabase nicht erreichbar, läuft das Spiel normal
+  weiter, nur ohne Vergleich.
 
 ## Deployment
 

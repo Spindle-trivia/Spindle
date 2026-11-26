@@ -57,6 +57,14 @@ test("orderCorrect scores each item in the right slot", () => {
   assert.equal(L.orderCorrect(items, []).points, 0);
 });
 
+test("betterThan compares against the other players", () => {
+  assert.equal(L.betterThan({ players: 1, below: 0 }), null);
+  assert.equal(L.betterThan(null), null);
+  assert.equal(L.betterThan({ players: 5, below: 4 }), 100);
+  assert.equal(L.betterThan({ players: 5, below: 0 }), 0);
+  assert.equal(L.betterThan({ players: 4, below: 1 }), 33);
+});
+
 test("shareGrid and streak", () => {
   assert.equal(L.shareGrid([100, 50, 10, 0, 80, 40, 1, 100], true), "🟩🟨🟧⬛🟩🟨🟧🌟");
   assert.equal(L.nextStreak(null, "2026-12-01"), 1);
