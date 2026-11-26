@@ -33,13 +33,17 @@ jobs:
           changed=$(git diff --name-only origin/main...HEAD)
           echo "Changed files:"; echo "$changed"
           if [ "$changed" = "js/data.js" ]; then echo "ok=true" >> "$GITHUB_OUTPUT"; else echo "ok=false" >> "$GITHUB_OUTPUT"; fi
-      - name: Rebase onto main and test
+      - name: Apply the question changes on top of main and test
         if: steps.scope.outputs.ok == 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git rebase origin/main
+          git diff origin/main...HEAD -- js/data.js > /tmp/questions.patch
+          git checkout -q -B auto-questions origin/main
+          git apply --3way /tmp/questions.patch
           npm test
+          git add js/data.js
+          git commit -q -m "Add new questions from ${GITHUB_REF_NAME}"
       - name: Update main and deploy
         if: steps.scope.outputs.ok == 'true'
         env:
