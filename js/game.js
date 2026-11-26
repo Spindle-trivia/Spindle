@@ -24,16 +24,40 @@
   var i = 0, res = [], star = false;
   var tm = null, t0 = 0, dur = 1;
 
-  var disc = '<svg class="rec" viewBox="0 0 300 300" aria-hidden="true">' +
-    '<ellipse cx="150" cy="282" rx="110" ry="12" fill="rgba(0,0,0,.18)"/><g class="spin">' +
-    '<circle cx="150" cy="150" r="140" fill="#24121f"/>' +
-    [124, 110, 96, 82, 68].map(function (r) {
-      return '<circle cx="150" cy="150" r="' + r + '" fill="none" stroke="#3a2232" stroke-width="2"/>';
-    }).join("") +
-    '<path d="M150 10 A140 140 0 0 1 270 80" stroke="rgba(255,255,255,.22)" stroke-width="10" fill="none" stroke-linecap="round"/>' +
-    '<circle cx="150" cy="150" r="52" fill="#ffcf3a"/><g transform="translate(152 146)" fill="#24121f">' +
-    '<ellipse cx="-12" cy="20" rx="13" ry="9" transform="rotate(-22 -12 20)"/><rect x="-2" y="-30" width="5" height="50"/>' +
-    '<path d="M3 -30 q20 8 17 34 q-3 -16 -17 -18z"/></g><circle cx="150" cy="150" r="5" fill="#fff"/></g></svg>';
+  // Pixel-art record drawn on a 32×32 grid: one SVG path per colour, crisp edges.
+  var disc = (function () {
+    var N = 32, c = N / 2, paths = {};
+    function put(col, x, y) { (paths[col] = paths[col] || []).push("M" + x + " " + y + "h1v1h-1z"); }
+    for (var y = 0; y < N; y++) {
+      for (var x = 0; x < N; x++) {
+        var dx = x + 0.5 - c, dy = y + 0.5 - c, d = Math.sqrt(dx * dx + dy * dy);
+        var ang = Math.atan2(-dy, dx) * 180 / Math.PI;
+        if (d > 15) continue;
+        if (d <= 1.2) put("#fff8e7", x, y);
+        else if (d <= 5.4) put("#ffcf3a", x, y);
+        else if (d <= 6.6) put("#ff6a55", x, y);
+        else if (d >= 13 && d <= 14.2 && ang > 25 && ang < 75) put("#8a6a80", x, y);
+        else if ((d >= 9.4 && d <= 10.2) || (d >= 12 && d <= 12.7)) put("#4a2a40", x, y);
+        else put("#24121f", x, y);
+      }
+    }
+    var body = Object.keys(paths).map(function (col) {
+      return '<path fill="' + col + '" d="' + paths[col].join("") + '"/>';
+    }).join("");
+    return function (cls, spin) {
+      return '<svg class="' + cls + '" viewBox="0 0 32 34" shape-rendering="crispEdges" aria-hidden="true">' +
+        '<path fill="rgba(0,0,0,.25)" d="M5 32h22v2h-22z"/><g class="' + (spin ? "spin" : "") + '">' + body + "</g></svg>";
+    };
+  })();
+
+  // Small record in the corner of every screen: click to go back to the main menu.
+  function homeButton() {
+    return '<button class="home" id="home" aria-label="Back to main menu" title="Main menu">' + disc("rec-s", false) + "</button>";
+  }
+  function wireHome() {
+    var h = $("#home");
+    if (h) h.onclick = function () { stop(); startScreen(); };
+  }
 
   // "Title – Artist" -> title with artist as small subline.
   function optLabel(s) {
@@ -60,7 +84,10 @@
     var saved = store.get("spindle-" + today);
     var dateLabel = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2]))
       .toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
-    app.innerHTML = '<div class="hero">' + disc + "<h1>Spindle</h1>" +
+    // A quiz left halfway (via the record button) can be resumed.
+    var inProgress = !saved && (i > 0 || res.length > 0);
+    var goLabel = saved ? "See today’s result" : inProgress ? "Continue · Track " + (Math.min(res.length, TOTAL - 1) + 1) : "Drop the needle";
+    app.innerHTML = '<div class="hero">' + disc("rec", true) + "<h1>Spindle</h1>" +
       '<p class="sub">The daily music quiz with no sound needed. ' + TOTAL + " tracks, about 3 minutes. New every day, the same for everyone.</p>" +
       '<div class="card" style="width:100%"><ol class="tl">' +
       Q.map(function (q, n) {
@@ -68,20 +95,27 @@
         return side + "<li><b>" + (n + 1) + "</b>" + esc(LBL[q.c]) + "</li>";
       }).join("") +
       "</ol></div>" +
-      '<button class="go" id="go">' + (saved ? "See today’s result" : "Drop the needle") + "</button>" +
+      '<button class="go" id="go">' + goLabel + "</button>" +
       '<div class="meta">Spindle #' + (day + 1) + " · " + esc(dateLabel) + "</div></div>";
-    $("#go").onclick = function () { saved ? result(saved) : question(); };
+    $("#go").onclick = function () {
+      if (saved) return result(saved);
+      // If the current track was already answered before leaving, move on to the next one.
+      if (res.length > i) i = res.length;
+      if (i >= TOTAL) return finish();
+      question();
+    };
   }
 
   // ---------- Question ----------
   function question() {
     var x = Q[i];
     var pts = res.reduce(function (a, b) { return a + b; }, 0);
-    app.innerHTML = '<div class="top"><div class="dots">' +
+    app.innerHTML = '<div class="top">' + homeButton() + '<div class="dots">' +
       Q.map(function (_, n) { return '<span class="' + (n < i ? "done" : n === i ? "now" : "") + '"></span>'; }).join("") +
-      "</div><div>" + pts + " pts</div></div>" +
+      '</div><div class="pts">' + pts + " pts</div></div>" +
       '<div class="card"><div class="lab">Track ' + (i + 1) + "/" + TOTAL + " · " + esc(LBL[x.c]) + "</div>" +
       '<div class="bar"><i></i></div><div id="body"></div><div class="fb" id="fb" aria-live="polite"></div></div>';
+    wireHome();
     var renderers = { mc: renderMC, bio: renderBio, order: renderOrder, text: renderText };
     renderers[x.type](x, $("#body"));
   }
@@ -229,13 +263,15 @@
   function result(r) {
     stop();
     var txt = "Spindle #" + (day + 1) + " 🎵 " + r.total + "/" + MAX + "\n" + r.grid;
-    app.innerHTML = '<div class="hero">' + disc.replace('class="spin"', "") +
+    app.innerHTML = '<div class="hero"><button class="home home-big" id="home" aria-label="Back to main menu" title="Main menu">' +
+      disc("rec", false) + "</button>" +
       '<div class="card" style="width:100%"><div class="lab">Spindle #' + (day + 1) + "</div>" +
       '<div class="score big" style="margin:6px 0 0">' + r.total + "</div>" +
       '<div class="meta">out of ' + MAX + " points" + (r.streak > 1 ? " · " + r.streak + "-day streak" : "") + "</div>" +
       '<div class="grid">' + r.grid + '</div><button class="go" id="cp">Copy result</button><div id="cpo"></div>' +
       "<table>" + r.res.map(function (p, k) { return "<tr><td>" + (k + 1) + ". " + esc(LBL[r.cats[k]]) + "</td><td>" + p + "</td></tr>"; }).join("") + "</table>" +
       '<p class="meta" style="margin-top:14px">Next record in <b id="cd"></b></p></div></div>';
+    wireHome();
     $("#cp").onclick = function () {
       var fallback = function () {
         $("#cpo").innerHTML = '<textarea rows="3" readonly>' + esc(txt) + "</textarea>";
