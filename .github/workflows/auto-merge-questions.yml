@@ -1,0 +1,49 @@
+name: Auto-merge new questions
+
+# The weekly question job pushes a branch that changes only js/data.js.
+# This workflow tests it, fast-forwards main to it and triggers the Pages deploy.
+# Branches that touch any other file are ignored and need a normal pull request.
+
+on:
+  push:
+    branches: ['claude/**', 'questions/**']
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: auto-merge-questions
+  cancel-in-progress: false
+
+jobs:
+  merge:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Only question changes?
+        id: scope
+        run: |
+          git fetch origin main
+          changed=$(git diff --name-only origin/main...HEAD)
+          echo "Changed files:"; echo "$changed"
+          if [ "$changed" = "js/data.js" ]; then echo "ok=true" >> "$GITHUB_OUTPUT"; else echo "ok=false" >> "$GITHUB_OUTPUT"; fi
+      - name: Rebase onto main and test
+        if: steps.scope.outputs.ok == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rebase origin/main
+          npm test
+      - name: Update main and deploy
+        if: steps.scope.outputs.ok == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git push origin HEAD:main
+          gh workflow run pages.yml --ref main
