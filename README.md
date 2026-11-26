@@ -5,7 +5,7 @@
 ## Spielprinzip
 
 Jede Runde ist eine „Platte“ mit Seite A und B. Die Reihenfolge der Runden und die Fragen werden pro Tag
-aus einem festen Seed gezogen (Zeitzone Europe/Berlin), sodass alle Spieler am selben Tag dasselbe Quiz bekommen.
+aus einem festen Seed gezogen (Zeitzone New York, America/New_York – neuer Tag um 0 Uhr dortiger Zeit, also 6 Uhr deutscher Zeit), sodass alle Spieler am selben Tag dasselbe Quiz bekommen.
 
 | Runde | Aufgabe | Punkte |
 |---|---|---|
